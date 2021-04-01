@@ -249,7 +249,7 @@ do_ifconfig() {
 if [ -n "$IPROUTE" ]; then
 	fix_ip_get_output () {
 		sed -e 's/ /\n/g' | \
-		    sed -ne "1 s|\$|${1}|p;/via/{N;p};/dev/{N;p};/src/{N;p};/mtu/{N;p};/metric/{N;p}"
+		    sed -ne "1 s|\$|${1}|p;/via/{N;p};/dev/{N;p};/src/{N;p};/mtu/{N;p};/metric/{N;p};/onlink/{p}"
 	}
 
 	set_vpngateway_route() {
