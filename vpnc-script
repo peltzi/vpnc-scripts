@@ -249,15 +249,10 @@ do_ifconfig() {
 if [ -n "$IPROUTE" ]; then
 	fix_ip_get_output () {
 		sed -e 's/ /\n/g' | \
-		    sed -ne "1 s|\$|${1}|p;/via/{N;p};/dev/{N;p};/src/{N;p};/mtu/{N;p};/metric/{N;p}"
+		    sed -ne "1 s|\$|${1}|p;/via/{N;p};/dev/{N;p};/src/{N;p};/mtu/{N;p};/metric/{N;p};/onlink/{p}"
 	}
 
 	set_vpngateway_route() {
-		$IPROUTE route add `$IPROUTE route get "$VPNGATEWAY" | fix_ip_get_output`
-		$IPROUTE route flush cache 2>/dev/null
-	}
-
-	set_vpngateway_route_attempt_reconnect() {
 		# We'll attempt to add a host route to the gateway through every route that matches
 		# its address (excluding those through TUNDEV because the goal is to avoid loopback).
 
@@ -402,11 +397,7 @@ else # use route command
 		# - keep lines starting with 'default' or '0.0.0.0', but exclude bogus routes '0.0.0.0/nn' where nn != 0
 		# - remove lines containing IPv6 addresses (':')
 		# - remove lines for link-local routes (https://superuser.com/a/1067742)
-		netstat -r -n | awk '/:/ { next; } /link#/ { next; } /^(default|0\.0\.0\.0([[:space:]]|\/0))/ { print $2; exit; }'
-	}
-
-	get_default_gw_excl_tunnel() {
-		# Get rid of lines containing $TUNDEV (we don't want loopback)
+		# - remove lines containing $TUNDEV (we don't want loopback)
 		netstat -r -n | awk '/:/ { next; } /link#/ { next; } /[[:space:]]'"$TUNDEV"'([[:space:]]|$)/ { next; } /^(default|0\.0\.0\.0([[:space:]]|\/0))/ { print $2; exit; }'
 	}
 
@@ -417,13 +408,6 @@ else # use route command
 		case "$VPNGATEWAY" in
 		*:*)	route add $route_syntax_inet6_host "$VPNGATEWAY" $route_syntax_gw "`get_ipv6_default_gw`";;
 		*)	route add -host "$VPNGATEWAY" $route_syntax_gw "`get_default_gw`";;
-		esac
-	}
-
-	set_vpngateway_route_attempt_reconnect() {
-		case "$VPNGATEWAY" in
-		*:*)	route add $route_syntax_inet6_host "$VPNGATEWAY" $route_syntax_gw "`get_ipv6_default_gw_excl_tunnel`";;
-		*)	route add -host "$VPNGATEWAY" $route_syntax_gw "`get_default_gw_excl_tunnel`";;
 		esac
 	}
 
@@ -501,12 +485,9 @@ else # use route command
 		# Intended behavior, starting with `netstat -r -n` IPv6 output:
 		# - keep lines starting with 'default' or '::'
 		# - append %$interface to link-local routes (fe80::/10)
-		# - remove lines for loopback interface (lo)
+	        # - remove lines for loopback interface (lo)
+		# - remove lines containing $TUNDEV (we don't want loopback)
 		# FIXME: is there a better way to exclude loopback routes than filtering interface /^lo/?
-		netstat -r -n $netstat_syntax_ipv6 | awk '/^(default|::\/0)/ { if ($NF!~/^lo/) { print ($2~/^fe[89ab]/ ? $2"%"$NF : $2); } }'
-	}
-
-	get_ipv6_default_gw_excl_tunnel() {
 		netstat -r -n $netstat_syntax_ipv6 | awk '/^(default|::\/0)/ { if ($NF!~/^lo/ && /$NF!~/'"$TUNDEV"'([[:space:]]|$)/) { print ($2~/^fe[89ab]/ ? $2"%"$NF : $2); } }'
 	}
 
@@ -1134,7 +1115,7 @@ do_disconnect() {
 }
 
 do_attempt_reconnect() {
-	set_vpngateway_route_attempt_reconnect
+	set_vpngateway_route
 }
 
 #### Main
