@@ -133,6 +133,12 @@ while ! ${CMDNS1} ${IP} addr list dev ${TUNDEV} &>/dev/null; do
 done
 sleep 3 # XX: CI needs additional delay here
 
+if test "$NO_IPROUTE2" = 1;then
+    # XX: 'route flush' doesn't work properly on Linux
+    ${CMDNS1} ${IP} route flush cache 2>/dev/null
+    ${CMDNS1} ${IP} -6 route flush cache 2>/dev/null
+fi
+
 set -e
 echo " * ping remote address"
 
