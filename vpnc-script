@@ -488,7 +488,7 @@ else # use route command
 	        # - remove lines for loopback interface (lo)
 		# - remove lines containing $TUNDEV (we don't want loopback)
 		# FIXME: is there a better way to exclude loopback routes than filtering interface /^lo/?
-		netstat -r -n $netstat_syntax_ipv6 | awk '/^(default|::\/0)/ { if ($NF!~/^lo/ && /$NF!~/'"$TUNDEV"'([[:space:]]|$)/) { print ($2~/^fe[89ab]/ ? $2"%"$NF : $2); } }'
+		netstat -r -n $netstat_syntax_ipv6 | awk '/^(default|::\/0)/ { if ($NF!~/^lo/ && $NF!~/'"$TUNDEV"'([[:space:]]|$)/) { print ($2~/^fe[89ab]/ ? $2"%"$NF : $2); } }'
 	}
 
 	set_ipv6_default_route() {
