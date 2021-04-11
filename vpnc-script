@@ -353,7 +353,7 @@ if [ -n "$IPROUTE" ]; then
 		else
 			$IPROUTE -6 route replace "$NETWORK/$NETMASKLEN" dev "$NETDEV"
 		fi
-		$IPROUTE route flush cache 2>/dev/null
+		$IPROUTE -6 route flush cache 2>/dev/null
 	}
 
 	set_ipv6_exclude_route() {
@@ -367,12 +367,12 @@ if [ -n "$IPROUTE" ]; then
 			return
 		fi
 		$IPROUTE -6 route add $ARGS
-		$IPROUTE route flush cache 2>/dev/null
+		$IPROUTE -6 route flush cache 2>/dev/null
 	}
 
 	reset_ipv6_default_route() {
 		$IPROUTE -6 route del default dev "$TUNDEV"
-		$IPROUTE route flush cache 2>/dev/null
+		$IPROUTE -6 route flush cache 2>/dev/null
 	}
 
 	del_ipv6_network_route() {
