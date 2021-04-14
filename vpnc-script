@@ -252,15 +252,22 @@ if [ -n "$IPROUTE" ]; then
 		    sed -ne "1 s|\$|${1}|p;/via/{N;p};/dev/{N;p};/src/{N;p};/mtu/{N;p};/metric/{N;p};/onlink/{p}"
 	}
 
-	set_vpngateway_route() {
-		# We'll attempt to add a host route to the gateway through every route that matches
-		# its address (excluding those through TUNDEV because the goal is to avoid loopback).
-
-		echo "$VPNGATEWAY" | grep -q : && FAMILY=-6 ROOT=::/0 || FAMILY=-4 ROOT=0/0
+        # returns all routes to a destination *except* those through $TUNDEV,
+        # sorted by increasing metric (with absent metric as last)
+        list_non_loopback_routes () {
+            echo "$1" | grep -q : && FAMILY=-6 ROOT=::/0 || FAMILY=-4 ROOT=0/0
 		# put metric in front, sort by metric, then chop off first two fields (metric and destination)
 		$IPROUTE $FAMILY route show to "$VPNGATEWAY" root "$ROOT" |
 		    awk '/dev '"$TUNDEV"'/ { next; } { printf "%s %s\n", (match($0, /metric ([^ ]+)/) ? substr($0, RSTART+7, RLENGTH-7) : 4294967295), $0; }' |
-		    sort -n | cut -d' ' -f3- |
+		    sort -n | cut -d' ' -f3-
+        }
+
+	set_vpngateway_route() {
+		# We'll attempt to add a host route to the gateway through every route that matches
+		# its address (excluding those through TUNDEV because the goal is to avoid loopback).
+		echo "$1" | grep -q : && FAMILY=-6 || FAMILY=-4
+
+		list_non_loopback_routes "$VPNGATEWAY" |
 		while read LINE ; do
 			# We do not want to use 'replace', since a route to the gateway that already
 			# exists is mostly likely the correct one (e.g. the case of a reconnect attempt
@@ -301,13 +308,14 @@ if [ -n "$IPROUTE" ]; then
 		NETWORK="$1"
 		NETMASK="$2"
 		NETMASKLEN="$3"
-		ARGS=`$IPROUTE route get "$NETWORK" 2>/dev/null | fix_ip_get_output "/$NETMASKLEN"`
-		if [ -z "$ARGS" ]; then
-			echo "cannot find route for exclude route $NETWORK/$NETMASKLEN, ignoring" >&2
-			return
-		fi
-		$IPROUTE route add $ARGS
-		$IPROUTE route flush cache 2>/dev/null
+
+		echo "$1" | grep -q : && FAMILY=-6 || FAMILY=-4
+
+		list_non_loopback_routes "$NETWORK/$NETMASKLEN" |
+		while read LINE ; do
+			$IPROUTE $FAMILY route add `echo "$NETWORK/$NETMASKLEN $LINE" | fix_ip_get_output` 2>/dev/null
+		done
+		$IPROUTE $FAMILY route flush cache 2>/dev/null
 	}
 
 	del_exclude_route() {
@@ -357,17 +365,9 @@ if [ -n "$IPROUTE" ]; then
 	}
 
 	set_ipv6_exclude_route() {
-		# add explicit route to keep current routing for this target
-		# (keep traffic separate from VPN tunnel)
 		NETWORK="$1"
 		NETMASKLEN="$2"
-		ARGS=`$IPROUTE route get "$NETWORK" 2>/dev/null | fix_ip_get_output "/$NETMASKLEN"`
-		if [ -z "$ARGS" ]; then
-			echo "cannot find route for exclude route $NETWORK/$NETMASKLEN, ignoring" >&2
-			return
-		fi
-		$IPROUTE -6 route add $ARGS
-		$IPROUTE -6 route flush cache 2>/dev/null
+		set_exclude_route "$NETWORK" nomask "$NETMASKLEN"
 	}
 
 	reset_ipv6_default_route() {
