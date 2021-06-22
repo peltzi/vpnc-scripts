@@ -257,7 +257,7 @@ if [ -n "$IPROUTE" ]; then
         list_non_loopback_routes () {
             echo "$1" | grep -q : && FAMILY=-6 ROOT=::/0 || FAMILY=-4 ROOT=0/0
 		# put metric in front, sort by metric, then chop off first two fields (metric and destination)
-		$IPROUTE $FAMILY route show to "$VPNGATEWAY" root "$ROOT" |
+		$IPROUTE $FAMILY route show to "$1" root "$ROOT" |
 		    awk '/dev '"$TUNDEV"'/ { next; } { printf "%s %s\n", (match($0, /metric ([^ ]+)/) ? substr($0, RSTART+7, RLENGTH-7) : 4294967295), $0; }' |
 		    sort -n | cut -d' ' -f3-
         }
