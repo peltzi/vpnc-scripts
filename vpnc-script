@@ -295,12 +295,18 @@ if [ -n "$IPROUTE" ]; then
 			# after dead-peer detection, but no change in the underlying network devices).
 			$IPROUTE $FAMILY route add `echo "$VPNGATEWAY $LINE" | fix_ip_get_output` 2>/dev/null
 		done
-		$IPROUTE $FAMILY route flush cache 2>/dev/null
+		if [ $FAMILY != -4 ]; then
+			$IPROUTE $FAMILY route flush cache 2>/dev/null
+		fi
 	}
 
 	del_vpngateway_route() {
+		echo "$VPNGATEWAY" | grep -q : && FAMILY=-6 || FAMILY=-4
+
 		$IPROUTE route $route_syntax_del "$VPNGATEWAY"
-		$IPROUTE route flush cache 2>/dev/null
+		if [ $FAMILY != -4 ]; then
+			$IPROUTE $FAMILY route flush cache 2>/dev/null
+		fi
 	}
 
 	set_default_route() {
@@ -320,7 +326,6 @@ if [ -n "$IPROUTE" ]; then
 		else
 			$IPROUTE route replace "$NETWORK/$NETMASKLEN" dev "$NETDEV"
 		fi
-		$IPROUTE route flush cache 2>/dev/null
 	}
 
 	set_exclude_route() {
@@ -336,7 +341,6 @@ if [ -n "$IPROUTE" ]; then
 		while read LINE ; do
 			$IPROUTE $FAMILY route add `echo "$NETWORK/$NETMASKLEN $LINE" | fix_ip_get_output` 2>/dev/null
 		done
-		$IPROUTE $FAMILY route flush cache 2>/dev/null
 	}
 
 	del_exclude_route() {
@@ -346,13 +350,11 @@ if [ -n "$IPROUTE" ]; then
 		NETMASK="$2"
 		NETMASKLEN="$3"
 		$IPROUTE route $route_syntax_del "$NETWORK/$NETMASKLEN"
-		$IPROUTE route flush cache 2>/dev/null
 	}
 
 	reset_default_route() {
 		if [ -s "$DEFAULT_ROUTE_FILE" ]; then
 			$IPROUTE route replace `cat "$DEFAULT_ROUTE_FILE"`
-			$IPROUTE route flush cache 2>/dev/null
 			rm -f -- "$DEFAULT_ROUTE_FILE"
 		fi
 	}
@@ -363,7 +365,6 @@ if [ -n "$IPROUTE" ]; then
 		NETMASKLEN="$3"
 		NETDEV="$4"
 		$IPROUTE route $route_syntax_del "$NETWORK/$NETMASKLEN" dev "$NETDEV"
-		$IPROUTE route flush cache 2>/dev/null
 	}
 
 	set_ipv6_default_route() {
