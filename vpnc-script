@@ -265,7 +265,7 @@ if [ -n "$IPROUTE" ]; then
 	set_vpngateway_route() {
 		# We'll attempt to add a host route to the gateway through every route that matches
 		# its address (excluding those through TUNDEV because the goal is to avoid loopback).
-		echo "$1" | grep -q : && FAMILY=-6 || FAMILY=-4
+		echo "$VPNGATEWAY" | grep -q : && FAMILY=-6 || FAMILY=-4
 
 		list_non_loopback_routes "$VPNGATEWAY" |
 		while read LINE ; do
