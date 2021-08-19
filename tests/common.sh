@@ -30,7 +30,7 @@ if test -z "${OPENCONNECT}" || ! test -x ${OPENCONNECT};then
 fi
 
 if test -z "${OCSERV}" || ! test -x ${OCSERV};then
-	echo "You need openconnect to run this test"
+	echo "You need ocserv to run this test"
 	exit 1
 fi
 
