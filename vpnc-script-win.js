@@ -60,9 +60,12 @@ case "pre-init":
     break;
 case "connect":
     var gw = getDefaultGateway();
-    // Calculate the first usable address in subnet
+    // Calculate the first legal host address in subnet
+    // (identical to the INTERNAL_IP4_ADDRESS if the netmask is
+    // 255.255.255.255, otherwise increment the last octet)
     var internal_gw_array = env("INTERNAL_IP4_NETADDR").split(".");
-    internal_gw_array[3]++;
+    if (env("INTERNAL_IP4_NETMASK").trim() != "255.255.255.255" && env("INTERNAL_IP4_NETMASKLEN") != 32)
+        internal_gw_array[3]++;
     var internal_gw = internal_gw_array.join(".");
 
     echo("VPN Gateway: " + env("VPNGATEWAY"));
