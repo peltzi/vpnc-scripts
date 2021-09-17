@@ -23,7 +23,7 @@
 # List of parameters passed through environment
 #* reason                       -- why this script was called, one of: pre-init connect disconnect reconnect attempt-reconnect
 #* VPNGATEWAY                   -- VPN gateway address (always present)
-#* VPNPID                       -- PID of the processing controlling the VPN (OpenConnect v9.0+)
+#* VPNPID                       -- PID of the process controlling the VPN (OpenConnect v9.0+)
 #* TUNDEV                       -- tunnel device (always present)
 #* IDLE_TIMEOUT                 -- gateway's idle timeout in seconds (OpenConnect v8.06+); unused
 #* INTERNAL_IP4_ADDRESS         -- address (always present)
