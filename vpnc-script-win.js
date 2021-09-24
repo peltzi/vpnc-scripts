@@ -69,14 +69,19 @@ case "connect":
     // Calculate the first legal host address in subnet
     // (identical to the INTERNAL_IP4_ADDRESS if the netmask is
     // 255.255.255.255, otherwise increment the last octet)
-    var internal_gw_array = env("INTERNAL_IP4_NETADDR").split(".");
-    if (env("INTERNAL_IP4_NETMASK").trim() != "255.255.255.255" && env("INTERNAL_IP4_NETMASKLEN") != 32)
+    // We also need to work around the fact that
+    // INTERNAL_IP4_{NETMASK,NETADDR} are not always set for
+    // all protocols.
+    var internal_ip4_netmask = env("INTERNAL_IP4_NETMASK") || "255.255.255.255";
+    var internal_ip4_netaddr = env("INTERNAL_IP4_NETADDR") || env("INTERNAL_IP4_ADDRESS");
+    var internal_gw_array = internal_ip4_netaddr.split(".");
+    if (internal_ip4_netmask.trim() != "255.255.255.255" && env("INTERNAL_IP4_NETMASKLEN") != 32)
         internal_gw_array[3]++;
     var internal_gw = internal_gw_array.join(".");
 
     echo("VPN Gateway: " + env("VPNGATEWAY"));
     echo("Internal Address: " + env("INTERNAL_IP4_ADDRESS"));
-    echo("Internal Netmask: " + env("INTERNAL_IP4_NETMASK"));
+    echo("Internal Netmask: " + internal_ip4_netmask);
     echo("Internal Gateway: " + internal_gw);
     echo("Interface: \"" + env("TUNDEV") + "\" / " + env("TUNIDX"));
 
@@ -101,11 +106,11 @@ case "connect":
 
     if (env("CISCO_SPLIT_INC") || REDIRECT_GATEWAY_METHOD > 0) {
         run("netsh interface ip set address \"" + env("TUNIDX") + "\" static " +
-            env("INTERNAL_IP4_ADDRESS") + " " + env("INTERNAL_IP4_NETMASK") + " store=active");
+            env("INTERNAL_IP4_ADDRESS") + " " + internal_ip4_netmask + " store=active");
     } else {
         // The default route will be added automatically
         run("netsh interface ip set address \"" + env("TUNIDX") + "\" static " +
-            env("INTERNAL_IP4_ADDRESS") + " " + env("INTERNAL_IP4_NETMASK") + " " + internal_gw +
+            env("INTERNAL_IP4_ADDRESS") + " " + internal_ip4_netmask + " " + internal_gw +
             " gwmetric=1 store=active");
     }
 
