@@ -39,7 +39,7 @@
 #  - AAAA queries return the A result, converted to the above IPv6 space.
 #  - PTR queries within the IPv6 space converted appropriately.
 
-IP="`which ip 2> /dev/null | grep '^/'`"
+IP="`command -v ip | grep '^/'`"
 
 connect_parent()
 {
