@@ -78,7 +78,7 @@
 
 #TRACE# echo "------------------"
 #TRACE# echo "vpnc-script environment:"
-#TRACE# env | egrep '^(CISCO_|INTERNAL_IP|VPNGATEWAY|TUNDEV|IDLE_TIMEOUT|reason)' | sort
+#TRACE# env | grep -E '^(CISCO_|INTERNAL_IP|VPNGATEWAY|TUNDEV|IDLE_TIMEOUT|reason)' | sort
 #TRACE# echo "------------------"
 #TRACE# set -x
 
