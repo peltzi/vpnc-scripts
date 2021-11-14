@@ -37,7 +37,7 @@
 
 PATH=${PATH}:/usr/sbin
 if test -z ${IP};then
-	IP=$(command -v ip)
+	IP=$(type -P ip)
 fi
 
 if test "$(id -u)" != "0";then
