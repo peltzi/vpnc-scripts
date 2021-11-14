@@ -78,7 +78,7 @@
 
 #TRACE# echo "------------------"
 #TRACE# echo "vpnc-script environment:"
-#TRACE# env | egrep '^(CISCO_|INTERNAL_IP|VPNGATEWAY|TUNDEV|IDLE_TIMEOUT|reason)' | sort
+#TRACE# env | grep -E '^(CISCO_|INTERNAL_IP|VPNGATEWAY|TUNDEV|IDLE_TIMEOUT|reason)' | sort
 #TRACE# echo "------------------"
 #TRACE# set -x
 
@@ -120,7 +120,7 @@ else
 fi
 
 if [ "$OS" = "Linux" ]; then
-	IPROUTE="`which ip 2> /dev/null | grep '^/'`"
+	IPROUTE="`command -v ip | grep '^/'`"
 	ifconfig_syntax_ptp="pointopoint"
 	route_syntax_gw="gw"
 	route_syntax_del="del"
@@ -132,7 +132,7 @@ if [ "$OS" = "Linux" ]; then
 	ifconfig_syntax_del() { case "$1" in *:*) echo del "$1" ;; *) echo 0.0.0.0 ;; esac; }
 	netstat_syntax_ipv6="-6"
 else
-	# iproute2 is Linux only; if `which ip` returns something on another OS, it's likely an unrelated tool
+	# iproute2 is Linux only; if `command -v ip` returns something on another OS, it's likely an unrelated tool
 	# (see https://github.com/dlenski/openconnect/issues/132#issuecomment-470475009)
 	IPROUTE=""
 	ifconfig_syntax_ptp=""

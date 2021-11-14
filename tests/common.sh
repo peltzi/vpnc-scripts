@@ -19,10 +19,10 @@
 builddir=${builddir:-.}
 srcdir=${srcdir:-.}
 
-OPENCONNECT=${OPENCONNECT:-$(which openconnect)}
-OCCTL=${OCCTL:-$(which occtl)}
-OCSERV=${OCSERV:-$(which ocserv)}
-IP=${IP:-$(which ip)}
+OPENCONNECT=${OPENCONNECT:-$(type -P openconnect)}
+OCCTL=${OCCTL:-$(type -P occtl)}
+OCSERV=${OCSERV:-$(type -P ocserv)}
+IP=${IP:-$(type -P ip)}
 
 if test -z "${OPENCONNECT}" || ! test -x ${OPENCONNECT};then
 	echo "You need openconnect to run this test"
@@ -81,14 +81,14 @@ update_config() {
 # command in the caller's PFCMD, or exit, indicating an unsupported
 # test.  Prefer ss from iproute2 over the older netstat.
 have_port_finder() {
-	for file in $(which ss 2> /dev/null) /*bin/ss /usr/*bin/ss /usr/local/*bin/ss;do
+	for file in $(type -P ss) /*bin/ss /usr/*bin/ss /usr/local/*bin/ss;do
 		if test -x "$file";then
 			PFCMD="$file";return 0
 		fi
 	done
 
 	if test -z "$PFCMD";then
-	for file in $(which netstat 2> /dev/null) /bin/netstat /usr/bin/netstat /usr/local/bin/netstat;do
+	for file in $(type -P netstat) /bin/netstat /usr/bin/netstat /usr/local/bin/netstat;do
 		if test -x "$file";then
 			PFCMD="$file";return 0
 		fi
