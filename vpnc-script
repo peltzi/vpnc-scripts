@@ -94,7 +94,7 @@ HOOKS_DIR=/etc/vpnc
 # uniquely identify this VPN connection. Normally, the parent process
 # is a shell, and the grandparent's PID is the relevant one.
 # OpenConnect v9.0+ provides VPNPID, so we don't need to determine it.
-if [ -z "$VPNPID " ]; then
+if [ -z "$VPNPID" ]; then
     VPNPID=$PPID
     PCMD=`ps -c -o cmd= -p $PPID`
     case "$PCMD" in
