@@ -72,7 +72,7 @@ function run(cmd)
 
     var exitCode = oExec.ExitCode;
     if (exitCode != 0)
-        echo(ERROR, "\"" + cmd + "\" returned non-zero exit status: " + exitCode + ")");
+        echo(ERROR, "\"" + cmd + "\" returned non-zero exit status: " + exitCode);
     echo((exitCode != 0 ? ERROR : TRACE), "   stdout+stderr dump: " + s);
     accumulatedExitCode += exitCode;
 
