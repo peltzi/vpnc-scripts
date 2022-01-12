@@ -223,7 +223,7 @@ case "disconnect":
             var network = env("CISCO_SPLIT_EXC_" + i + "_ADDR");
             var netmask = env("CISCO_SPLIT_EXC_" + i + "_MASK");
             var netmasklen = env("CISCO_SPLIT_EXC_" + i + "_MASKLEN");
-            exec("route delete " + network + " mask " + netmask );
+            run("route delete " + network + " mask " + netmask );
         }
     }
 
