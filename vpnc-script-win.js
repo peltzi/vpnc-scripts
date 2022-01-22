@@ -106,11 +106,11 @@ case "connect":
     var internal_ip4_netmask = env("INTERNAL_IP4_NETMASK") || "255.255.255.255";
     var internal_gw = env("INTERNAL_IP4_ADDRESS");
 
-    echo(INFO, "VPN Gateway: " + env("VPNGATEWAY"));
-    echo(INFO, "Internal Address: " + env("INTERNAL_IP4_ADDRESS"));
-    echo(INFO, "Internal Netmask: " + internal_ip4_netmask);
-    echo(INFO, "Internal Gateway: " + internal_gw);
-    echo(INFO, "Interface: \"" + env("TUNDEV") + "\" / " + env("TUNIDX"));
+    echo(INFO, "Default/Internet gateway  : " + gw);
+    echo(INFO, "VPN Interface Identifiers : \"" + env("TUNDEV") + "\" / " + env("TUNIDX"));
+    echo(INFO, "Public VPN Gateway Address: " + env("VPNGATEWAY"));
+    echo(INFO, "Internal Legacy IP Address: " + env("INTERNAL_IP4_ADDRESS"));
+    echo(INFO, "Internal Legacy IP Netmask: " + internal_ip4_netmask);
 
 
     if (env("INTERNAL_IP4_MTU")) {
@@ -123,6 +123,12 @@ case "connect":
                 " mtu=" + env("INTERNAL_IP4_MTU") + " store=active");
         }
     }
+
+    // Add explicit route for the VPN gateway to avoid routing loops
+    // FIXME: handle IPv6 gateway address
+    echo(INFO, "Configuring explicit route to VPN gateway " + env("VPNGATEWAY"));
+    run("route add " + env("VPNGATEWAY") + " mask 255.255.255.255 " + gw);
+    echo(INFO, "done.");
 
     echo(INFO, "Configuring \"" + env("TUNDEV") + "\" / " + env("TUNIDX") + " interface for Legacy IP...");
 
@@ -140,10 +146,6 @@ case "connect":
             env("INTERNAL_IP4_ADDRESS") + " " + internal_ip4_netmask + " " + internal_gw +
             " gwmetric=1 store=active");
     }
-
-    // Add direct route for the VPN gateway to avoid routing loops
-    // FIXME: handle IPv6 gateway address
-    run("route add " + env("VPNGATEWAY") + " mask 255.255.255.255 " + gw);
 
     run("netsh interface ipv4 del wins " + env("TUNIDX") + " all");
     if (env("INTERNAL_IP4_NBNS")) {
@@ -237,19 +239,24 @@ case "connect":
     }
     break;
 case "disconnect":
-    // Delete direct route for the VPN gateway
+    echo(INFO, "Deconfiguring \"" + env("TUNDEV") + "\" / " + env("TUNIDX") + " interface...");
+
+    // Delete explicit route for the VPN gateway
     // FIXME: handle IPv6 gateway address
+    echo(INFO, "Removing explicit route to VPN gateway " + env("VPNGATEWAY"));
     run("route delete " + env("VPNGATEWAY") + " mask 255.255.255.255");
 
     // Delete address
+    echo(INFO, "Removing" + (env("INTERNAL_IP6_ADDRESS") ? " IPv6 and" : "") + " Legacy IP addresses");
     run("netsh interface ipv4 del address " + env("TUNIDX") + " " +
         env("INTERNAL_IP4_ADDRESS") + " gateway=all");
     if (env("INTERNAL_IP6_ADDRESS")) {
-        run("netsh interface ipv6 del address " + env("TUNIDX") + " " + env("INTERNAL_IP6_ADDRESS"));
+        run("netsh interface ipv6 del address " + env("TUNIDX") + " " + env("INTERNAL_IP6_ADDRESS") + " store=active");
     }
 
     // Delete Legacy IP split-exclude routes
     if (env("CISCO_SPLIT_EXC")) {
+        echo(INFO, "Removing Legacy IP split-exclude routes");
         for (var i = 0 ; i < parseInt(env("CISCO_SPLIT_EXC")); i++) {
             var network = env("CISCO_SPLIT_EXC_" + i + "_ADDR");
             var netmask = env("CISCO_SPLIT_EXC_" + i + "_MASK");
@@ -259,5 +266,6 @@ case "disconnect":
     }
 
     // FIXME: handle IPv6 split-excludes
+    echo(INFO, "done.");
 }
 WScript.Quit(accumulatedExitCode);
