@@ -97,15 +97,15 @@ case "connect":
 
     if (!env("CISCO_SPLIT_INC") && REDIRECT_GATEWAY_METHOD != 2) {
         // Interface metric must be set to 1 in order to add a route with metric 1 since Windows Vista
-        run("netsh interface ip set interface \"" + env("TUNIDX") + "\" metric=1 store=active");
+        run("netsh interface ip set interface " + env("TUNIDX") + " metric=1 store=active");
     }
 
     if (env("CISCO_SPLIT_INC") || REDIRECT_GATEWAY_METHOD > 0) {
-        run("netsh interface ip set address \"" + env("TUNIDX") + "\" static " +
+        run("netsh interface ip set address " + env("TUNIDX") + " static " +
             env("INTERNAL_IP4_ADDRESS") + " " + internal_ip4_netmask + " store=active");
     } else {
         // The default route will be added automatically
-        run("netsh interface ip set address \"" + env("TUNIDX") + "\" static " +
+        run("netsh interface ip set address " + env("TUNIDX") + " static " +
             env("INTERNAL_IP4_ADDRESS") + " " + internal_ip4_netmask + " " + internal_gw +
             " gwmetric=1 store=active");
     }
