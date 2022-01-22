@@ -26,6 +26,7 @@
 #* VPNPID                       -- PID of the process controlling the VPN (OpenConnect v9.0+)
 #* TUNDEV                       -- tunnel device (always present)
 #* IDLE_TIMEOUT                 -- gateway's idle timeout in seconds (OpenConnect v8.06+); unused
+#* LOG_LEVEL                    -- log level; ERROR=0, INFO=1, DEBUG=2, TRACE=3 (OpenConnect v9.0+)
 #* INTERNAL_IP4_ADDRESS         -- address (always present)
 #* INTERNAL_IP4_MTU             -- MTU (often unset)
 #* INTERNAL_IP4_NETMASK         -- netmask (often unset)

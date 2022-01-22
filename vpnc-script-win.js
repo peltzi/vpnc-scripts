@@ -1,6 +1,15 @@
 // vpnc-script-win.js
 //
 // Routing, IP, and DNS configuration script for OpenConnect.
+//
+// Microsoft's "JScript" is what we're actually using here.  It's
+// based on a truly ancient version of JavaScript (ECMAScript 3.0
+// according to a Microsoft engineer, see
+// https://stackoverflow.com/a/28331933) so it doesn't include any
+// modern features:
+//   - no String.prototype.trim       (ECMAScript 5.0)
+//   - no Date.prototype.toISOString  (ECMAScript 5.1)
+//   - no 'const'                     (ECMAScript 6.0)
 
 // --------------------------------------------------------------
 // Initial setup
@@ -10,6 +19,10 @@ var accumulatedExitCode = 0;
 var ws = WScript.CreateObject("WScript.Shell");
 var env = ws.Environment("Process");
 var comspec = ws.ExpandEnvironmentStrings("%comspec%");
+
+var ERROR = 0, INFO = 1, DEBUG = 2, TRACE = 3;
+var logLevel = parseInt(env("LOG_LEVEL")) || INFO;
+var logTimestamps = false;
 
 // How to add the default internal route
 // 0 - As interface gateway when setting properties
@@ -21,23 +34,41 @@ var REDIRECT_GATEWAY_METHOD = 0;
 // Utilities
 // --------------------------------------------------------------
 
-function echo(msg)
+function ocTimestamp(d) {
+    // Matches format of `openconnect --timestamp` ("%Y-%m-%d %H:%M:%S", local time)
+    function pad(number) {
+        if (number < 10)
+            return '0' + number;
+        return number;
+    }
+    return (d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' '
+            + pad(d.getHours()) + ':' + pad(d.getMinutes())   + ':' + pad(d.getSeconds()));
+}
+
+function echo(level, msg)
 {
-    WScript.echo(msg);
+    if (logLevel < level)
+        return;
+
+    if (logTimestamps)
+        WScript.echo("[" + ocTimestamp(new Date()) + "] " + msg);
+    else
+        WScript.echo(msg);
 }
 
 function run(cmd)
 {
-    var oExec = ws.Exec(comspec + " /C \"" + cmd + "\" 2>&1");
+    var fullCmd = comspec + " /C \"" + cmd + "\" 2>&1";
+    echo(DEBUG, "-> " + fullCmd);
+    var oExec = ws.Exec(fullCmd);
     oExec.StdIn.Close();
 
     var s = oExec.StdOut.ReadAll();
 
     var exitCode = oExec.ExitCode;
-    if (exitCode != 0) {
-        echo("\"" + cmd + "\" returned non-zero exit status: " + exitCode + ")");
-        echo("   stdout+stderr dump: " + s);
-    }
+    if (exitCode != 0)
+        echo(ERROR, "\"" + cmd + "\" returned non-zero exit status: " + exitCode + ")");
+    echo((exitCode != 0 ? ERROR : TRACE), "   stdout+stderr dump: " + s);
     accumulatedExitCode += exitCode;
 
     return s;
@@ -75,15 +106,15 @@ case "connect":
     var internal_ip4_netmask = env("INTERNAL_IP4_NETMASK") || "255.255.255.255";
     var internal_gw = env("INTERNAL_IP4_ADDRESS");
 
-    echo("VPN Gateway: " + env("VPNGATEWAY"));
-    echo("Internal Address: " + env("INTERNAL_IP4_ADDRESS"));
-    echo("Internal Netmask: " + internal_ip4_netmask);
-    echo("Internal Gateway: " + internal_gw);
-    echo("Interface: \"" + env("TUNDEV") + "\" / " + env("TUNIDX"));
+    echo(INFO, "VPN Gateway: " + env("VPNGATEWAY"));
+    echo(INFO, "Internal Address: " + env("INTERNAL_IP4_ADDRESS"));
+    echo(INFO, "Internal Netmask: " + internal_ip4_netmask);
+    echo(INFO, "Internal Gateway: " + internal_gw);
+    echo(INFO, "Interface: \"" + env("TUNDEV") + "\" / " + env("TUNIDX"));
 
 
     if (env("INTERNAL_IP4_MTU")) {
-        echo("MTU: " + env("INTERNAL_IP4_MTU"));
+        echo(INFO, "MTU: " + env("INTERNAL_IP4_MTU"));
         run("netsh interface ipv4 set subinterface " + env("TUNIDX") +
             " mtu=" + env("INTERNAL_IP4_MTU") + " store=active");
 
@@ -93,7 +124,7 @@ case "connect":
         }
     }
 
-    echo("Configuring \"" + env("TUNDEV") + "\" / " + env("TUNIDX") + " interface for Legacy IP...");
+    echo(INFO, "Configuring \"" + env("TUNDEV") + "\" / " + env("TUNIDX") + " interface for Legacy IP...");
 
     if (!env("CISCO_SPLIT_INC") && REDIRECT_GATEWAY_METHOD != 2) {
         // Interface metric must be set to 1 in order to add a route with metric 1 since Windows Vista
@@ -120,7 +151,7 @@ case "connect":
         for (var i = 0; i < wins.length; i++) {
             run("netsh interface ipv4 add wins " + env("TUNIDX") + " " + wins[i]);
         }
-        echo("Configured " + wins.length + " WINS servers: " + wins.join(" "));
+        echo(INFO, "Configured " + wins.length + " WINS servers: " + wins.join(" "));
     }
 
     run("netsh interface ipv4 del dns " + env("TUNIDX") + " all");
@@ -131,12 +162,12 @@ case "connect":
             var protocol = dns[i].indexOf(":") !== -1 ? "ipv6" : "ipv4";
             run("netsh interface " + protocol + " add dns " + env("TUNIDX") + " " + dns[i]);
         }
-        echo("Configured " + dns.length + " DNS servers: " + dns.join(" "));
+        echo(INFO, "Configured " + dns.length + " DNS servers: " + dns.join(" "));
     }
-    echo("done.");
+    echo(INFO, "done.");
 
     // Add internal network routes
-    echo("Configuring Legacy IP networks:");
+    echo(INFO, "Configuring Legacy IP networks:");
     if (env("CISCO_SPLIT_INC")) {
         for (var i = 0 ; i < parseInt(env("CISCO_SPLIT_INC")); i++) {
             var network = env("CISCO_SPLIT_INC_" + i + "_ADDR");
@@ -144,15 +175,15 @@ case "connect":
             var netmasklen = env("CISCO_SPLIT_INC_" + i + "_MASKLEN");
             run("route add " + network + " mask " + netmask +
                 " " + internal_gw + " if " + env("TUNIDX"));
-            echo("Configured Legacy IP split-include route: " + network + "/" + netmasklen);
+            echo(INFO, "Configured Legacy IP split-include route: " + network + "/" + netmasklen);
         }
     } else if (REDIRECT_GATEWAY_METHOD == 1) {
         run("route add 0.0.0.0 mask 0.0.0.0 " + internal_gw + " metric 1");
-        echo("Configured Legacy IP default route.");
+        echo(INFO, "Configured Legacy IP default route.");
     } else if (REDIRECT_GATEWAY_METHOD == 2) {
         run("route add 0.0.0.0 mask 128.0.0.0 " + internal_gw);
         run("route add 128.0.0.0 mask 128.0.0.0 " + internal_gw);
-        echo("Configured Legacy IP default route pair (0.0.0.0/1, 128.0.0.0/1)");
+        echo(INFO, "Configured Legacy IP default route pair (0.0.0.0/1, 128.0.0.0/1)");
     }
 
     // Add excluded routes
@@ -162,20 +193,20 @@ case "connect":
             var netmask = env("CISCO_SPLIT_EXC_" + i + "_MASK");
             var netmasklen = env("CISCO_SPLIT_EXC_" + i + "_MASKLEN");
             run("route add " + network + " mask " + netmask + " " + gw);
-            echo("Configured Legacy IP split-exclude route: " + network + "/" + netmasklen);
+            echo(INFO, "Configured Legacy IP split-exclude route: " + network + "/" + netmasklen);
         }
     }
-    echo("Legacy IP route configuration done.");
+    echo(INFO, "Legacy IP route configuration done.");
 
     if (env("INTERNAL_IP6_ADDRESS")) {
-        echo("Configuring \"" + env("TUNDEV") + "\" / " + env("TUNIDX") + " interface for IPv6...");
+        echo(INFO, "Configuring \"" + env("TUNDEV") + "\" / " + env("TUNIDX") + " interface for IPv6...");
 
         run("netsh interface ipv6 set address " + env("TUNIDX") + " " + env("INTERNAL_IP6_ADDRESS") + " store=active");
 
-        echo("done.");
+        echo(INFO, "done.");
 
         // Add internal network routes
-        echo("Configuring IPv6 networks:");
+        echo(INFO, "Configuring IPv6 networks:");
         if (env("INTERNAL_IP6_NETMASK") && !env("INTERNAL_IP6_NETMASK").match("/128$")) {
             run("netsh interface ipv6 add route " + env("INTERNAL_IP6_NETMASK") +
                 " " + env("TUNIDX") + " store=active");
@@ -187,22 +218,22 @@ case "connect":
                 var netmasklen = env("CISCO_IPV6_SPLIT_INC_" + i + "_MASKLEN");
                 run("netsh interface ipv6 add route " + network + "/" +
                     netmasklen + " " + env("TUNIDX") + " store=active")
-                echo("Configured IPv6 split-include route: " + network + "/" + netmasklen);
+                echo(INFO, "Configured IPv6 split-include route: " + network + "/" + netmasklen);
             }
         } else {
-            echo("Setting default IPv6 route through VPN.");
+            echo(INFO, "Setting default IPv6 route through VPN.");
             run("netsh interface ipv6 add route 2000::/3 " + env("TUNIDX") + " store=active");
         }
 
         // FIXME: handle IPv6 split-excludes
 
-        echo("IPv6 route configuration done.");
+        echo(INFO, "IPv6 route configuration done.");
     }
 
     if (env("CISCO_BANNER")) {
-        echo("--------------------------------------------------");
-        echo(env("CISCO_BANNER"));
-        echo("--------------------------------------------------");
+        echo(INFO, "--------------------------------------------------");
+        echo(INFO, env("CISCO_BANNER"));
+        echo(INFO, "--------------------------------------------------");
     }
     break;
 case "disconnect":
