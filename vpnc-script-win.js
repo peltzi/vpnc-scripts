@@ -1,5 +1,10 @@
 // vpnc-script-win.js
 //
+// Originally part of vpnc source code:
+// © 2007-2008 Maurice Massar, Jörg Mayer, Antonio Borneo, et al.
+// © 2014 David Woodhouse <dwmw2@infradead.org>
+// © 2020-2022 Daniel Lenski <dlenski@gmail.com> et al.
+//
 // Routing, IP, and DNS configuration script for OpenConnect.
 //
 // Microsoft's "JScript" is what we're actually using here.  It's
