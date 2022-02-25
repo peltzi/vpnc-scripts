@@ -688,6 +688,10 @@ search $DOMAINS"
 						close
 					EOF
 				fi
+				# For newer MacOS versions it is needed to set DNS
+				ACTIVE_INTERFACE=`route -n get default | grep interface | awk '{print $2}'`
+				ACTIVE_NETWORK_SERVICE=`networksetup -listnetworkserviceorder | grep -B 1 "$ACTIVE_INTERFACE" | head -n 1 | awk '/\([0-9]+\)/{ print }'|cut -d " " -f2-`
+				networksetup -setdnsservers "$ACTIVE_NETWORK_SERVICE" $INTERNAL_IP4_DNS
 				;;
 		esac
 	fi
@@ -728,6 +732,10 @@ restore_resolvconf_generic() {
 						EOF
 					fi
 				fi
+				# For newer MacOS versions it is needed to unset DNS
+				ACTIVE_INTERFACE=`route -n get default | grep interface | awk '{print $2}'`
+				ACTIVE_NETWORK_SERVICE=`networksetup -listnetworkserviceorder | grep -B 1 "$ACTIVE_INTERFACE" | head -n 1 | awk '/\([0-9]+\)/{ print }'|cut -d " " -f2-`
+				networksetup -setdnsservers "$ACTIVE_NETWORK_SERVICE" Empty
 				;;
 		esac
 	fi
