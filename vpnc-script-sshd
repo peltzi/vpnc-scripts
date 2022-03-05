@@ -179,10 +179,13 @@ connect_parent()
 	exit 1
     fi
 
-    $IP link add dev $TUNDEV-vpnssh%d type veth
-    # XXX: Assume vpnssh0 and vpnssh1; ip doesn't tell us!
     LOCALDEV=$TUNDEV-vpnssh0
     export REMOTEDEV=$TUNDEV-vpnssh1
+    $IP link add name $LOCALDEV type veth peer name $REMOTEDEV
+    if [ $? -ne 0 ]; then
+        # Fallback for older iproute2: assume vpnssh0 and vpnssh1; ip doesn't tell us!
+        $IP link add dev $TUNDEV-vpnssh%d type veth
+    fi
     
     $IP netns exec $NETNSNAME $0 $@ &
     CHILDPID=$!
