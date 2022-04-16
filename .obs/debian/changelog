@@ -1,0 +1,5 @@
+vpnc-scripts (0.1~git20220305) unstable; urgency=medium
+
+  * Initial packaging.
+
+ -- OpenConnect Team <openconnect-devel@lists.infradead.org>  Sat, 16 Apr 2022 10:13:56 +0000

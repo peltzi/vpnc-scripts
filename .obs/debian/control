@@ -1,0 +1,29 @@
+Source: vpnc-scripts
+Maintainer: OpenConnect Team <openconnect-devel@lists.infradead.org>
+Section: net
+Priority: optional
+Build-Depends: debhelper-compat (= 12)
+Standards-Version: 4.6.0
+Rules-Requires-Root: no
+Vcs-Browser: https://gitlab.com/openconnect/vpnc-scripts
+Vcs-Git: https://gitlab.com/openconnect/vpnc-scripts.git
+Homepage: https://www.infradead.org/openconnect/vpnc-script.html
+
+Package: vpnc-scripts
+Architecture: all
+Multi-Arch: foreign
+Depends: iproute2 | net-tools,
+         ${misc:Depends}
+Suggests: dnsmasq,
+          openssh-server,
+          resolvconf
+Description: Network configuration scripts for VPNC and OpenConnect
+ This package contains scripts required to configure routing and name
+ services when invoked by the VPNC or OpenConnect VPN clients.
+ The primary script automatically configures network routes and name
+ servers for the active VPN connection. It also provides hooks for
+ executing custom actions at various stages of the connection and
+ disconnection process.
+ .
+ An alternate replacement script is also provided that contains the VPN
+ in a network namespace which is accessible via SSH.
