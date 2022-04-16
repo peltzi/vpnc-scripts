@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+
+SCRIPTS = vpnc-script vpnc-script-sshd
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	dh_auto_install
+	mkdir -p debian/vpnc-scripts/usr/share/vpnc-scripts
+	cp $(SCRIPTS) debian/vpnc-scripts/usr/share/vpnc-scripts
+	chmod +x debian/vpnc-scripts/usr/share/vpnc-scripts/vpnc-script*
