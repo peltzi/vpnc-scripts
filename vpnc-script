@@ -1006,10 +1006,6 @@ do_connect() {
 			fi
 			i=`expr $i + 1`
 		done
-		for i in $INTERNAL_IP4_DNS ; do
-			echo "$i" | grep : >/dev/null || \
-				set_network_route "$i" "255.255.255.255" "32" "$TUNDEV"
-		done
 	elif [ -n "$INTERNAL_IP4_ADDRESS" ]; then
 		set_default_route
 	fi
@@ -1024,11 +1020,6 @@ do_connect() {
 				set_ipv6_network_route "$NETWORK" "$NETMASKLEN" "$TUNDEV"
 			fi
 			i=`expr $i + 1`
-		done
-		for i in $INTERNAL_IP4_DNS ; do
-			if echo "$i" | grep : >/dev/null; then
-				set_ipv6_network_route "$i" "128" "$TUNDEV"
-			fi
 		done
 	elif [ -n "$INTERNAL_IP6_NETMASK" -o -n "$INTERNAL_IP6_ADDRESS" ]; then
 		set_ipv6_default_route
@@ -1054,9 +1045,6 @@ do_disconnect() {
 				reset_default_route
 			fi
 			i=`expr $i + 1`
-		done
-		for i in $INTERNAL_IP4_DNS ; do
-			del_network_route "$i" "255.255.255.255" "32" "$TUNDEV"
 		done
 	else
 		reset_default_route
@@ -1095,9 +1083,6 @@ do_disconnect() {
 				del_ipv6_network_route "$NETWORK" "$NETMASKLEN" "$TUNDEV"
 			fi
 			i=`expr $i + 1`
-		done
-		for i in $INTERNAL_IP6_DNS ; do
-			del_ipv6_network_route "$i" "128" "$TUNDEV"
 		done
 	elif [ -n "$INTERNAL_IP6_NETMASK" -o -n "$INTERNAL_IP6_ADDRESS" ]; then
 		reset_ipv6_default_route
