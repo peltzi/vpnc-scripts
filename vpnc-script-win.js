@@ -153,17 +153,17 @@ case "connect":
             " gwmetric=1 store=active");
     }
 
-    run("netsh interface ipv4 del wins " + env("TUNIDX") + " all");
+    run("netsh interface ipv4 delete winsservers " + env("TUNIDX") + " all");
     if (env("INTERNAL_IP4_NBNS")) {
         var wins = env("INTERNAL_IP4_NBNS").split(/ /);
         for (var i = 0; i < wins.length; i++) {
-            run("netsh interface ipv4 add wins " + env("TUNIDX") + " " + wins[i]);
+            run("netsh interface ipv4 add winsservers " + env("TUNIDX") + " " + wins[i]);
         }
         echo(INFO, "Configured " + wins.length + " WINS servers: " + wins.join(" "));
     }
 
-    run("netsh interface ipv4 del dns " + env("TUNIDX") + " all");
-    run("netsh interface ipv6 del dns " + env("TUNIDX") + " all");
+    run("netsh interface ipv4 delete dnsservers " + env("TUNIDX") + " all");
+    run("netsh interface ipv6 delete dnsservers " + env("TUNIDX") + " all");
     if (env("INTERNAL_IP4_DNS")) {
         var dns = env("INTERNAL_IP4_DNS").split(/ /);
         for (var i = 0; i < dns.length; i++) {
@@ -174,7 +174,7 @@ case "connect":
             // We know that Windows 7 supports/requires the 'validate=no' flag (see #52). If
             // someone using an older version of Windows that errors out on the unknown flag
             // really wants us to support it, we'll need to figure out how to distinguish it.
-            run("netsh interface " + protocol + " add dns " + env("TUNIDX") + " " + dns[i]
+            run("netsh interface " + protocol + " add dnsservers " + env("TUNIDX") + " " + dns[i]
                + " validate=no");
         }
         echo(INFO, "Configured " + dns.length + " DNS servers: " + dns.join(" "));
@@ -261,10 +261,10 @@ case "disconnect":
 
     // Delete address
     echo(INFO, "Removing" + (env("INTERNAL_IP6_ADDRESS") ? " IPv6 and" : "") + " Legacy IP addresses");
-    run("netsh interface ipv4 del address " + env("TUNIDX") + " " +
+    run("netsh interface ipv4 delete address " + env("TUNIDX") + " " +
         env("INTERNAL_IP4_ADDRESS") + " gateway=all");
     if (env("INTERNAL_IP6_ADDRESS")) {
-        run("netsh interface ipv6 del address " + env("TUNIDX") + " " + env("INTERNAL_IP6_ADDRESS") + " store=active");
+        run("netsh interface ipv6 delete address " + env("TUNIDX") + " " + env("INTERNAL_IP6_ADDRESS") + " store=active");
     }
 
     // Delete Legacy IP split-exclude routes
