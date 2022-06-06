@@ -103,13 +103,6 @@ case "pre-init":
 case "connect":
     var gw = getDefaultGateway();
 
-    var winVer = null;
-    if (run("ver").match(/version\s+((\d+\.)+\d+)/i)) {
-        winVer = RegExp.$1;
-        echo(INFO, "Running on Windows version: " + winVer);
-    } else
-        echo(ERROR, "Could not determine Windows version from 'ver' command");
-
     // Use INTERNAL_IP4_ADDRESS as the "gateway" address for the
     // VPN tunnel connection. As noted in the OpenConnect source,
     // "It's a tunnel; having a gateway is meaningless." Setting
@@ -177,10 +170,12 @@ case "connect":
             var protocol = dns[i].indexOf(":") !== -1 ? "ipv6" : "ipv4";
             // With 'validate=yes' (the default on newer Windows versions), Windows will try to
             // connect to the DNS server, time out after ~10 seconds, and print a warning, but
-            // nevertheless add the specified server. Adding 'validate=no' is thus necessary.
-            // FIXME: determine the earliest Windows version that actually requires this flag.
+            // nevertheless add the specified server. Adding 'validate=no' is thus NECESSARY.
+            // We know that Windows 7 supports/requires the 'validate=no' flag (see #52). If
+            // someone using an older version of Windows that errors out on the unknown flag
+            // really wants us to support it, we'll need to figure out how to distinguish it.
             run("netsh interface " + protocol + " add dns " + env("TUNIDX") + " " + dns[i]
-                + (winVer >= "10." ? " validate=no" : ""));
+               + " validate=no");
         }
         echo(INFO, "Configured " + dns.length + " DNS servers: " + dns.join(" "));
     }
