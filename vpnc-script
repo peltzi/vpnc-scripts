@@ -334,12 +334,9 @@ if [ -n "$IPROUTE" ]; then
 		NETWORK="$1"
 		NETMASK="$2"
 		NETMASKLEN="$3"
-
-		echo "$1" | grep -q : && FAMILY=-6 || FAMILY=-4
-
 		list_non_loopback_routes "$NETWORK/$NETMASKLEN" |
 		while read LINE ; do
-			$IPROUTE $FAMILY route add `echo "$NETWORK/$NETMASKLEN $LINE" | fix_ip_get_output` 2>/dev/null
+			$IPROUTE route add `echo "$NETWORK/$NETMASKLEN $LINE" | fix_ip_get_output` 2>/dev/null
 		done
 	}
 
