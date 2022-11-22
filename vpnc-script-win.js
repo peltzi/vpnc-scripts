@@ -101,6 +101,12 @@ switch (env("reason")) {
 case "pre-init":
     break;
 case "connect":
+    if (env("CISCO_BANNER")) {
+        echo(INFO, "--------------------------------------------------");
+        echo(INFO, env("CISCO_BANNER"));
+        echo(INFO, "--------------------------------------------------");
+    }
+
     var gw = getDefaultGateway();
 
     // Use INTERNAL_IP4_ADDRESS as the "gateway" address for the
@@ -245,11 +251,6 @@ case "connect":
         echo(INFO, "IPv6 route configuration done.");
     }
 
-    if (env("CISCO_BANNER")) {
-        echo(INFO, "--------------------------------------------------");
-        echo(INFO, env("CISCO_BANNER"));
-        echo(INFO, "--------------------------------------------------");
-    }
     break;
 case "disconnect":
     echo(INFO, "Deconfiguring \"" + env("TUNDEV") + "\" / " + env("TUNIDX") + " interface...");
