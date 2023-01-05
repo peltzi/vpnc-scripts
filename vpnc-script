@@ -789,6 +789,7 @@ modify_resolvconf_openwrt() {
 restore_resolvconf_openwrt() {
 	remove_dns $OPENWRT_INTERFACE
 }
+
 # === resolv.conf handling via /sbin/resolvconf (Debian, Ubuntu, Gentoo)) =========
 
 modify_resolvconf_manager() {
@@ -807,6 +808,8 @@ search $CISCO_DEF_DOMAIN"
 restore_resolvconf_manager() {
 	/sbin/resolvconf -d $TUNDEV
 }
+
+# === resolv.conf handling via systemd-resolved =========
 
 AF_INET=2
 
@@ -912,7 +915,7 @@ restore_resolvconf_unbound() {
 	fi
 }
 
-# === resolv.conf handling via resolvd =========
+# === resolv.conf handling via resolvd (OpenBSD) =========
 
 modify_resolvconf_resolvd() {
 	/sbin/route nameserver $TUNDEV $INTERNAL_IP4_DNS $INTERNAL_IP6_DNS
