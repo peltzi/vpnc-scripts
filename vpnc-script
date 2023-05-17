@@ -901,6 +901,11 @@ modify_resolvconf_unbound() {
 		/usr/sbin/unbound-control forward_add +i ${CISCO_DEF_DOMAIN} ${INTERNAL_IP4_DNS}
 		/usr/sbin/unbound-control flush_requestlist
 		/usr/sbin/unbound-control flush_zone ${CISCO_DEF_DOMAIN}
+		# flush infra cache
+		for i in $INTERNAL_IP4_DNS ; do
+			/usr/sbin/unbound-control flush_infra "$i"
+		done
+
 	fi
 }
 
