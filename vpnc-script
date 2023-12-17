@@ -246,7 +246,7 @@ do_ifconfig() {
 	fi
 
 	if [ -n "$INTERNAL_IP4_NETMASK" ]; then
-		set_network_route "$INTERNAL_IP4_NETADDR" "$INTERNAL_IP4_NETMASK" "$INTERNAL_IP4_NETMASKLEN" "$TUNDEV"
+		set_ipv4_network_route "$INTERNAL_IP4_NETADDR" "$INTERNAL_IP4_NETMASK" "$INTERNAL_IP4_NETMASKLEN" "$TUNDEV"
 	fi
 
 	# If the netmask is provided, it contains the address _and_ netmask
@@ -312,12 +312,12 @@ if [ -n "$IPROUTE" ]; then
 		fi
 	}
 
-	set_default_route() {
+	set_ipv4_default_route() {
 		$IPROUTE route | grep '^default' | fix_ip_get_output > "$DEFAULT_ROUTE_FILE"
 		$IPROUTE route replace default dev "$TUNDEV"
 	}
 
-	set_network_route() {
+	set_ipv4_network_route() {
 		NETWORK="$1"
 		NETMASK="$2"
 		NETMASKLEN="$3"
@@ -330,7 +330,7 @@ if [ -n "$IPROUTE" ]; then
 		fi
 	}
 
-	set_exclude_route() {
+	set_ipv4_exclude_route() {
 		# add explicit route to keep current routing for this target
 		# (keep traffic separate from VPN tunnel)
 		NETWORK="$1"
@@ -342,7 +342,7 @@ if [ -n "$IPROUTE" ]; then
 		done
 	}
 
-	del_exclude_route() {
+	del_ipv4_exclude_route() {
 		# FIXME: In theory, this could delete existing routes which are
 		# identical to split-exclude routes specified by VPNGATEWAY
 		NETWORK="$1"
@@ -351,14 +351,14 @@ if [ -n "$IPROUTE" ]; then
 		$IPROUTE route $route_syntax_del "$NETWORK/$NETMASKLEN"
 	}
 
-	reset_default_route() {
+	reset_ipv4_default_route() {
 		if [ -s "$DEFAULT_ROUTE_FILE" ]; then
 			$IPROUTE route replace `cat "$DEFAULT_ROUTE_FILE"`
 			rm -f -- "$DEFAULT_ROUTE_FILE"
 		fi
 	}
 
-	del_network_route() {
+	del_ipv4_network_route() {
 		NETWORK="$1"
 		NETMASK="$2"
 		NETMASKLEN="$3"
@@ -388,7 +388,7 @@ if [ -n "$IPROUTE" ]; then
 	set_ipv6_exclude_route() {
 		NETWORK="$1"
 		NETMASKLEN="$2"
-		set_exclude_route "$NETWORK" nomask "$NETMASKLEN"
+		set_ipv4_exclude_route "$NETWORK" nomask "$NETMASKLEN"
 	}
 
 	reset_ipv6_default_route() {
@@ -439,14 +439,14 @@ else # use route command
 		esac
 	}
 
-	set_default_route() {
+	set_ipv4_default_route() {
 		DEFAULTGW="`get_default_gw`"
 		echo "$DEFAULTGW" > "$DEFAULT_ROUTE_FILE"
 		route $route_syntax_del default $route_syntax_gw "$DEFAULTGW"
 		route add default $route_syntax_gw "$INTERNAL_IP4_ADDRESS" $route_syntax_interface
 	}
 
-	set_network_route() {
+	set_ipv4_network_route() {
 		NETWORK="$1"
 		NETMASK="$2"
 		NETMASKLEN="$3"
@@ -458,7 +458,7 @@ else # use route command
 		route add -net "$NETWORK" $route_syntax_netmask "$NETMASK" $route_syntax_gw "$NETGW" $route_syntax_interface
 	}
 
-	set_exclude_route() {
+	set_ipv4_exclude_route() {
 		NETWORK="$1"
 		NETMASK="$2"
 		NETMASKLEN="$3"
@@ -473,7 +473,7 @@ else # use route command
 		route add -net "$NETWORK" $route_syntax_netmask "$NETMASK" $route_syntax_gw "$DEFAULTGW" $route_syntax_interface
 	}
 
-	del_exclude_route() {
+	del_ipv4_exclude_route() {
 		# FIXME: This can delete existing routes in case they're
 		# identical to split-exclude routes specified by VPNGATEWAY
 		NETWORK="$1"
@@ -482,7 +482,7 @@ else # use route command
 		route $route_syntax_del -net "$NETWORK" $route_syntax_netmask "$NETMASK"
 	}
 
-	reset_default_route() {
+	reset_ipv4_default_route() {
 		if [ -s "$DEFAULT_ROUTE_FILE" ]; then
 			route $route_syntax_del default $route_syntax_gw `get_default_gw` $route_syntax_interface
 			route add default $route_syntax_gw `cat "$DEFAULT_ROUTE_FILE"`
@@ -490,7 +490,7 @@ else # use route command
 		fi
 	}
 
-	del_network_route() {
+	del_ipv4_network_route() {
 		NETWORK="$1"
 		NETMASK="$2"
 		NETMASKLEN="$3"
@@ -995,7 +995,7 @@ do_connect() {
 			eval NETMASKLEN="\${CISCO_SPLIT_EXC_${i}_MASKLEN}"
 			case "$NETWORK" in
 				0.*|127.*|169.254.*) echo "ignoring non-forwardable exclude route $NETWORK/$NETMASKLEN" >&2 ;;
-				*) set_exclude_route "$NETWORK" "$NETMASK" "$NETMASKLEN" ;;
+				*) set_ipv4_exclude_route "$NETWORK" "$NETMASK" "$NETMASKLEN" ;;
 			esac
 			i=`expr $i + 1`
 		done
@@ -1017,14 +1017,14 @@ do_connect() {
 			eval NETMASK="\${CISCO_SPLIT_INC_${i}_MASK}"
 			eval NETMASKLEN="\${CISCO_SPLIT_INC_${i}_MASKLEN}"
 			if [ "$NETWORK" != "0.0.0.0" ]; then
-				set_network_route "$NETWORK" "$NETMASK" "$NETMASKLEN" "$TUNDEV"
+				set_ipv4_network_route "$NETWORK" "$NETMASK" "$NETMASKLEN" "$TUNDEV"
 			else
-				set_default_route
+				set_ipv4_default_route
 			fi
 			i=`expr $i + 1`
 		done
 	elif [ -n "$INTERNAL_IP4_ADDRESS" ]; then
-		set_default_route
+		set_ipv4_default_route
 	fi
 	if [ -n "$CISCO_IPV6_SPLIT_INC" ]; then
 		i=0
@@ -1057,14 +1057,14 @@ do_disconnect() {
 			if [ "$NETWORK" != "0.0.0.0" ]; then
 				# FIXME: This doesn't restore previously overwritten
 				#        routes.
-				del_network_route "$NETWORK" "$NETMASK" "$NETMASKLEN" "$TUNDEV"
+				del_ipv4_network_route "$NETWORK" "$NETMASK" "$NETMASKLEN" "$TUNDEV"
 			else
-				reset_default_route
+				reset_ipv4_default_route
 			fi
 			i=`expr $i + 1`
 		done
 	else
-		reset_default_route
+		reset_ipv4_default_route
 	fi
 	if [ -n "$CISCO_SPLIT_EXC" ]; then
 		i=0
@@ -1074,7 +1074,7 @@ do_disconnect() {
 			eval NETMASKLEN="\${CISCO_SPLIT_EXC_${i}_MASKLEN}"
 			case "$NETWORK" in
 				0.*|127.*|169.254.*) ;; # ignoring non-forwardable exclude route
-				*) del_exclude_route "$NETWORK" "$NETMASK" "$NETMASKLEN" ;;
+				*) del_ipv4_exclude_route "$NETWORK" "$NETMASK" "$NETMASKLEN" ;;
 			esac
 			i=`expr $i + 1`
 		done
