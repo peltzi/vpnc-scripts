@@ -97,7 +97,7 @@ HOOKS_DIR=/etc/vpnc
 # OpenConnect v9.0+ provides VPNPID, so we don't need to determine it.
 if [ -z "$VPNPID" ]; then
     VPNPID=$PPID
-    PCMD=`ps -c -o command= -p $PPID`
+    PCMD=`ps -c -o args= -p $PPID`
     case "$PCMD" in
         *sh) VPNPID=`ps -o ppid= -p $PPID` ;;
     esac
