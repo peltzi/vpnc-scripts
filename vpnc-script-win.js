@@ -140,7 +140,7 @@ case "connect":
     var internal_ip4_netmask = env("INTERNAL_IP4_NETMASK") || "255.255.255.255";
     var internal_gw = env("INTERNAL_IP4_ADDRESS");
 
-    echo(INFO, "Legacy Internet gateway   : " + gw4);
+    echo(INFO, "Legacy IP Internet gateway: " + gw4);
     echo(INFO, "IPv6 Internet gateway     : " + gw6);
     echo(INFO, "VPN Interface Identifiers : \"" + env("TUNDEV") + "\" / " + env("TUNIDX"));
     echo(INFO, "Public VPN Gateway Address: " + env("VPNGATEWAY"));
