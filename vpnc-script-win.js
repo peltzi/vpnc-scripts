@@ -271,6 +271,7 @@ case "connect":
             }
         } else {
             echo(INFO, "Setting default IPv6 route through VPN.");
+            // We need to use the gateway address fe80::8 below, as this is how the TAP device on Windows provides a tunnel
             run("netsh interface ipv6 add route 2000::/3 " + env("TUNIDX") + " fe80::8 store=active");
         }
 
