@@ -86,10 +86,18 @@ function run(cmd)
     return s;
 }
 
-function getDefaultGateway()
+function getDefaultGateway4()
 {
     if (run("route print").match(/0\.0\.0\.0 *(0|128)\.0\.0\.0 *([0-9\.]*)/)) {
         return (RegExp.$2);
+    }
+    return ("");
+}
+
+function getDefaultGateway6()
+{
+    if (run("netsh interface ipv6 show route").match(/::\/0 *([0-9]+ *[0-9a-f:]+)/)) {
+        return (RegExp.$1);
     }
     return ("");
 }
@@ -120,7 +128,8 @@ case "connect":
         echo(INFO, "------------------- BANNER end -------------------");
     }
 
-    var gw = getDefaultGateway();
+    var gw4 = getDefaultGateway4();
+    var gw6 = getDefaultGateway6();
 
     // Use INTERNAL_IP4_ADDRESS as the "gateway" address for the
     // VPN tunnel connection. As noted in the OpenConnect source,
@@ -131,7 +140,8 @@ case "connect":
     var internal_ip4_netmask = env("INTERNAL_IP4_NETMASK") || "255.255.255.255";
     var internal_gw = env("INTERNAL_IP4_ADDRESS");
 
-    echo(INFO, "Default/Internet gateway  : " + gw);
+    echo(INFO, "Legacy IP Internet gateway: " + gw4);
+    echo(INFO, "IPv6 Internet gateway     : " + gw6);
     echo(INFO, "VPN Interface Identifiers : \"" + env("TUNDEV") + "\" / " + env("TUNIDX"));
     echo(INFO, "Public VPN Gateway Address: " + env("VPNGATEWAY"));
     echo(INFO, "Internal Legacy IP Address: " + env("INTERNAL_IP4_ADDRESS"));
@@ -150,9 +160,14 @@ case "connect":
     }
 
     // Add explicit route for the VPN gateway to avoid routing loops
-    // FIXME: handle IPv6 gateway address
-    echo(INFO, "Configuring explicit route to VPN gateway " + env("VPNGATEWAY"));
-    run("route add " + env("VPNGATEWAY") + " mask 255.255.255.255 " + gw);
+    var vpngw = env("VPNGATEWAY");
+    if (vpngw.match(/:/g)) {
+	    echo(INFO, "Configuring explicit route to IPv6 VPN gateway " + vpngw);
+	    run("netsh interface ipv6 add route " + vpngw + "/128 " + gw6);
+    } else {
+	    echo(INFO, "Configuring explicit route to IPv4 VPN gateway " + vpngw);
+	    run("route add " + vpngw + " mask 255.255.255.255 " + gw4);
+    }
     echo(INFO, "done.");
 
     echo(INFO, "Configuring \"" + env("TUNDEV") + "\" / " + env("TUNIDX") + " interface for Legacy IP...");
@@ -226,7 +241,7 @@ case "connect":
             var network = env("CISCO_SPLIT_EXC_" + i + "_ADDR");
             var netmask = env("CISCO_SPLIT_EXC_" + i + "_MASK");
             var netmasklen = env("CISCO_SPLIT_EXC_" + i + "_MASKLEN");
-            run("route add " + network + " mask " + netmask + " " + gw);
+            run("route add " + network + " mask " + netmask + " " + gw4);
             echo(INFO, "Configured Legacy IP split-exclude route: " + network + "/" + netmasklen);
         }
     }
@@ -256,7 +271,8 @@ case "connect":
             }
         } else {
             echo(INFO, "Setting default IPv6 route through VPN.");
-            run("netsh interface ipv6 add route 2000::/3 " + env("TUNIDX") + " store=active");
+            // We need to use the gateway address fe80::8 below, as this is how the TAP device on Windows provides a tunnel
+            run("netsh interface ipv6 add route 2000::/3 " + env("TUNIDX") + " fe80::8 store=active");
         }
 
         // FIXME: handle IPv6 split-excludes
@@ -269,10 +285,14 @@ case "disconnect":
     echo(INFO, "Deconfiguring \"" + env("TUNDEV") + "\" / " + env("TUNIDX") + " interface...");
 
     // Delete explicit route for the VPN gateway
-    // FIXME: handle IPv6 gateway address
-    echo(INFO, "Removing explicit route to VPN gateway " + env("VPNGATEWAY"));
-    run("route delete " + env("VPNGATEWAY") + " mask 255.255.255.255");
-
+    var vpngw = env("VPNGATEWAY");
+    if (vpngw.match(/:/g)) {
+    	echo(INFO, "Removing explicit route to IPv6 VPN gateway " + vpngw);
+	    run("netsh interface ipv6 delete route " + vpngw + "/128 " + getDefaultGateway6());
+    } else {
+	    echo(INFO, "Removing explicit route to IPv4 VPN gateway " + vpngw);
+	    run("route delete " + vpngw + " mask 255.255.255.255");
+    }
 
     // Delete address
     echo(INFO, "Removing" + (env("INTERNAL_IP6_ADDRESS") ? " IPv6 and" : "") + " Legacy IP addresses");
@@ -282,6 +302,13 @@ case "disconnect":
         run("netsh interface ipv6 delete address " + env("TUNIDX") + " " + env("INTERNAL_IP6_ADDRESS") + " store=active");
     }
 
+    if (env("CISCO_IPV6_SPLIT_INC")) {
+    	// FIXME: handle IPv6 split-includes
+    } else {
+        echo(INFO, "Removing default IPv6 route through VPN.");
+        run("netsh interface ipv6 delete route 2000::/3 " + env("TUNIDX"));
+    }
+    
     // Delete Legacy IP split-exclude routes
     if (env("CISCO_SPLIT_EXC")) {
         echo(INFO, "Removing Legacy IP split-exclude routes");
