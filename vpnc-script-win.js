@@ -68,6 +68,13 @@ function echo(level, msg)
     }
 }
 
+function run_silent(cmd)
+{
+    var fullCmd = comspec + " /C \"" + cmd + "\" > NUL 2>&1";
+    var oExec = ws.Exec(fullCmd);
+    oExec.StdIn.Close();
+}
+
 function run(cmd)
 {
     var fullCmd = comspec + " /C \"" + cmd + "\" 2>&1";
@@ -111,6 +118,10 @@ if (!String.prototype.trim) {
 // --------------------------------------------------------------
 // Script starts here
 // --------------------------------------------------------------
+
+// Ensure that output of commands is in a known encoding for consistent
+// logging.
+run_silent("chcp 65001");
 
 if (env("LOG2FILE")) {
 	var fs = WScript.CreateObject("Scripting.FileSystemObject");
